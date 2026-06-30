@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Random Nutrition Facts</title>
+  <style>
+    :root{
+      --bg:#fafafa; --card:#fff; --accent:#2b8aee; --muted:#6b7280;
+      --radius:12px; --glass: rgba(255,255,255,0.6);
+    }
+    html,body{height:100%;margin:0;font-family:Inter,ui-sans-serif,system-ui,Segoe UI,Roboto,"Helvetica Neue",Arial;}
+    body{
+      display:flex;align-items:center;justify-content:center;
+      background:
+        radial-gradient(circle at 10% 10%, rgba(43,138,238,0.08), transparent 15%),
+        linear-gradient(180deg,#f6fbff 0%,var(--bg) 40%);
+      padding:32px;
+      color:#0f172a;
+    }
+    .app{
+      width:min(980px,96vw);
+      background:linear-gradient(180deg, rgba(255,255,255,0.8), rgba(255,255,255,0.65));
+      box-shadow:0 10px 30px rgba(12,15,30,0.08);
+      border-radius:16px;padding:22px;
+      backdrop-filter: blur(6px);
+    }
+    header{display:flex;gap:16px;align-items:center;justify-content:space-between;margin-bottom:16px}
+    h1{font-size:1.25rem;margin:0}
+    p.lead{margin:0;color:var(--muted);font-size:.95rem}
+    .controls{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+    input[type=number]{
+      width:88px;padding:8px;border-radius:10px;border:1px solid #e6eef9;background:#fff;
+      font-size:1rem;
+    }
+    button{
+      background:var(--accent);color:white;border:0;padding:10px 12px;border-radius:10px;
+      cursor:pointer;font-weight:600;
+      box-shadow:0 6px 14px rgba(43,138,238,0.16);
+    }
+    button.alt{background:transparent;color:var(--accent);border:1px solid rgba(43,138,238,0.12);box-shadow:none}
+    button.ghost{background:transparent;color:var(--muted);border:1px solid #eee}
+    .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px;margin-top:18px}
+    .card{
+      background:var(--card);padding:14px;border-radius:12px;border:1px solid rgba(12,15,30,0.04);
+      display:flex;flex-direction:column;gap:8px;min-height:84px;
+    }
+    .fact{font-size:0.98rem;line-height:1.35}
+    .meta{font-size:.85rem;color:var(--muted);display:flex;justify-content:space-between;align-items:center}
+    .small{font-size:.85rem;color:var(--muted)}
+    .controls .note{font-size:.88rem;color:var(--muted)}
+    .actions{display:flex;gap:8px;align-items:center}
+    .copy-btn{background:#111827;color:white;padding:6px 8px;border-radius:8px;border:0;font-size:.85rem}
+    footer{margin-top:14px;font-size:.82rem;color:var(--muted);display:flex;justify-content:space-between;align-items:center}
+    @media (max-width:520px){
+      header{flex-direction:column;align-items:flex-start;gap:10px}
+      .controls{width:100%}
+      input[type=number]{width:100%}
+    }
+  </style>
+</head>
+<body>
+  <main class="app" role="main" aria-labelledby="page-title">
+    <header>
+      <div>
+        <h1 id="page-title">Random Nutrition Facts</h1>
+        <p class="lead">Learn something new — pick how many facts you want and press Show.</p>
+      </div>
+      <div class="controls" aria-hidden="false">
+        <label for="count" class="small">Number of facts</label>
+        <input id="count" type="number" min="1" value="3" aria-label="Number of facts to show" />
+        <div class="actions" role="group" aria-label="actions">
+          <button id="showBtn" title="Show random facts">Show</button>
+          <button id="againBtn" class="alt" title="Get another set of facts">Another Set</button>
+          <button id="oneBtn" class="ghost" title="Show one surprise fact">Surprise me</button>
+        </div>
+      </div>
+    </header>
+
+    <section id="output" aria-live="polite">
+      <div class="grid" id="grid">
+        <!-- cards inserted here -->
+      </div>
+    </section>
+
+    <footer>
+      <div class="small">Facts are for general education and not a substitute for professional advice.</div>
+      <div>
+        <button id="copyAll" class="copy-btn" title="Copy facts to clipboard">Copy All</button>
+      </div>
+    </footer>
+  </main>
+
+  <script>
+    // A curated list of nutrition facts. You can extend this array.
+    const FACTS = [
+      "Protein helps build and repair tissues — aim to include protein in each meal.",
+      "Dietary fiber supports gut health and can help regulate blood sugar.",
+      "Vitamin C enhances iron absorption when eaten with iron-rich foods.",
+      "Healthy fats (monounsaturated and polyunsaturated) support heart health.",
+      "Whole fruits provide fiber and nutrients that fruit juice often lacks.",
+      "Sodium intake is linked to blood pressure — watch processed foods for hidden salt.",
+      "Calcium and vitamin D are key for bone health throughout life.",
+      "Eating a variety of colorful vegetables increases intake of different phytonutrients.",
+      "Omega-3 fatty acids (from fish or flax) support brain and heart health.",
+      "Excess added sugar can increase risk of weight gain and metabolic disease.",
+      "Iron from animal sources (heme iron) is absorbed more easily than plant iron.",
+      "Fermented foods (like yogurt, kefir, kimchi) contain beneficial microbes.",
+      "Potassium helps counterbalance sodium and is important for blood pressure control.",
+      "Consuming whole grains is associated with lower risk of chronic diseases.",
+      "Vitamin B12 is found naturally in animal products and fortified foods; vegans may need a supplement.",
+      "Hydration affects concentration, digestion, and physical performance.",
+      "Eating mindfully (no screens) can reduce overeating and improve satisfaction.",
+      "Trans fats increase heart disease risk — avoid partially hydrogenated oils.",
+      "A balanced plate often contains protein, vegetables, whole grains, and healthy fats.",
+      "Colorful spices like turmeric contain antioxidants with anti-inflammatory properties.",
+      "Regular legumes (beans, lentils) provide protein, fiber, and micronutrients.",
+      "Cooking methods matter: steaming or roasting preserves nutrients better than deep frying.",
+      "Moderate caffeine intake is generally safe for most adults, but sensitivity varies.",
+      "Zinc supports immune function and wound healing.",
+      "Excess vitamin A supplementation can be harmful—avoid megadoses unless prescribed.",
+      "Plant-based diets can meet nutrient needs if well-planned, including sources of B12 and iron.",
+      "Crunchy vegetables and fruits can help clean teeth and stimulate saliva.",
+      "Prebiotics (onion, garlic, asparagus) feed beneficial gut bacteria.",
+      "Eating protein and fiber together helps you feel fuller longer.",
+      "Micronutrient needs change across life stages — pregnancy, infancy, aging have different needs.",
+      "Frozen fruits and vegetables are nutritious and often similar to fresh.",
+      "A small amount of dark chocolate can provide antioxidants without excess sugar.",
+      "Saturated fat intake should be moderated and replaced with healthier fats when possible.",
+      "Vitamin K is important for blood clotting and bone health.",
+      "Excessive alcohol intake provides empty calories and can impair nutrient absorption.",
+      "Fortified foods can help prevent deficiencies (e.g., iodized salt, vitamin D-fortified milk).",
+      "Meal timing and frequency can be individualized — consistent patterns help many people manage hunger.",
+      "Food variety increases the chance of getting all essential nutrients."
+    ];
+
+    // Utility: return n unique random items from array
+    function sampleUnique(arr, n) {
+      const len = arr.length;
+      if (n >= len) return [...arr];
+      const result = [];
+      const taken = new Set();
+      while (result.length < n) {
+        const i = Math.floor(Math.random() * len);
+        if (!taken.has(i)) {
+          taken.add(i);
+          result.push(arr[i]);
+        }
+      }
+      return result;
+    }
+
+    // DOM refs
+    const grid = document.getElementById('grid');
+    const countInput = document.getElementById('count');
+    const showBtn = document.getElementById('showBtn');
+    const againBtn = document.getElementById('againBtn');
+    const oneBtn = document.getElementById('oneBtn');
+    const copyAll = document.getElementById('copyAll');
+
+    // State: last set of facts shown
+    let lastFacts = [];
+
+    function renderFacts(facts) {
+      grid.innerHTML = '';
+      if (!facts.length) {
+        grid.innerHTML = '<div class="small">No facts to show.</div>';
+        return;
+      }
+      facts.forEach((f, idx) => {
+        const card = document.createElement('article');
+        card.className = 'card';
+        card.setAttribute('tabindex','0');
+        const fact = document.createElement('div');
+        fact.className = 'fact';
+        fact.textContent = f;
+        const meta = document.createElement('div');
+        meta.className = 'meta';
+        meta.innerHTML = `<span>Fact ${idx+1}</span><span class="small">Source: general nutrition guidance</span>`;
+        card.appendChild(fact);
+        card.appendChild(meta);
+
+        // small copy button per card
+        const copy = document.createElement('button');
+        copy.textContent = 'Copy';
+        copy.className = 'alt';
+        copy.style.marginTop = '6px';
+        copy.addEventListener('click', () => {
+          navigator.clipboard?.writeText(f).then(()=> {
+            copy.textContent = 'Copied!';
+            setTimeout(()=> copy.textContent = 'Copy',1200);
+          }, ()=> {
+            alert('Copy failed — your browser may block clipboard writes.');
+          });
+        });
+        card.appendChild(copy);
+
+        grid.appendChild(card);
+      });
+    }
+
+    function showNRandom(n) {
+      const sanitized = Math.max(1, Math.floor(Number(n) || 1));
+      const max = FACTS.length;
+      if (sanitized > max) {
+        alert(`Only ${max} facts available; showing ${max}.`);
+      }
+      const chosen = sampleUnique(FACTS, Math.min(sanitized, max));
+      lastFacts = chosen;
+      renderFacts(chosen);
+      // focus first card for screen reader users
+      setTimeout(()=> {
+        const first = grid.querySelector('.card');
+        if (first) first.focus();
+      }, 100);
+    }
+
+    showBtn.addEventListener('click', ()=> showNRandom(countInput.value));
+    againBtn.addEventListener('click', ()=> {
+      if (!countInput.value) countInput.value = 1;
+      showNRandom(countInput.value);
+    });
+    oneBtn.addEventListener('click', ()=> {
+      showNRandom(1);
+    });
+    copyAll.addEventListener('click', ()=> {
+      if (!lastFacts.length) {
+        alert('No facts to copy — generate some first.');
+        return;
+      }
+      const text = lastFacts.map((f,i)=> `${i+1}. ${f}`).join('\n\n');
+      navigator.clipboard?.writeText(text).then(()=> {
+        copyAll.textContent = 'Copied ✓';
+        setTimeout(()=> copyAll.textContent = 'Copy All', 1400);
+      }, ()=> {
+        alert('Could not copy to clipboard.');
+      });
+    });
+
+    // keyboard: Enter on number triggers Show
+    countInput.addEventListener('keydown', (e)=> {
+      if (e.key === 'Enter') showBtn.click();
+    });
+
+    // initial render
+    showNRandom(Number(countInput.value) || 3);
+  </script>
+</body>
+</html>
